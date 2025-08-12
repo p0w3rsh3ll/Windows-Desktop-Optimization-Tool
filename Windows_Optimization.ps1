@@ -58,7 +58,7 @@ https://msdn.microsoft.com/en-us/library/cc422938.aspx
 [Cmdletbinding(DefaultParameterSetName = "Default")]
 Param (
     # Parameter help description
-    [ArgumentCompleter( { Get-ChildItem $PSScriptRoot -Directory | Select-Object -ExpandProperty Name } )]
+    [ArgumentCompleter( { Get-ChildItem $PSScriptRoot\Configurations -Directory | Select-Object -ExpandProperty Name } )]
     [System.String]$WindowsVersion = (Get-ItemProperty "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\").ReleaseId,
 
     [ValidateSet('All', 'WindowsMediaPlayer', 'AppxPackages', 'ScheduledTasks', 'DefaultUserSettings', 'LocalPolicy', 'Autologgers', 'Services', 'NetworkOptimizations', 'DiskCleanup')] 
@@ -76,3 +76,68 @@ Param (
 
 #Requires -RunAsAdministrator
 #Requires -PSEdition Desktop
+
+BEGIN 
+{
+    [Version]$WDOTVersion = "1.0.0.0" 
+    # Create Key
+    $KeyPath = 'HKLM:\SOFTWARE\WDOT'
+    If (-Not(Test-Path $KeyPath))
+    {
+        New-Item -Path $KeyPath | Out-Null
+    }
+
+    # Add WDOT Version Key
+    $Version = "Version"
+    $VersionValue = $WDOTVersion
+    If (Get-ItemProperty $KeyPath -Name Version -ErrorAction SilentlyContinue)
+    {
+        Set-ItemProperty -Path $KeyPath -Name $Version -Value $VersionValue
+    }
+    Else
+    {
+        New-ItemProperty -Path $KeyPath -Name $Version -Value $VersionValue | Out-Null
+    }
+
+    # Add WDOT Last Run
+    $LastRun = "LastRunTime"
+    $LastRunValue = Get-Date
+    If (Get-ItemProperty $KeyPath -Name LastRunTime -ErrorAction SilentlyContinue)
+    {
+        Set-ItemProperty -Path $KeyPath -Name $LastRun -Value $LastRunValue
+    }
+    Else
+    {
+        New-ItemProperty -Path $KeyPath -Name $LastRun -Value $LastRunValue | Out-Null
+    }
+    
+    $EventSources = @('WDOT', 'WindowsMediaPlayer', 'AppxPackages', 'ScheduledTasks', 'DefaultUserSettings', 'Autologgers', 'Services', 'LocalPolicy', 'NetworkOptimizations', 'AdvancedOptimizations', 'DiskCleanup')
+    If (-not([System.Diagnostics.EventLog]::SourceExists("WDOT")))
+    {
+        # All WDOT main function Event ID's [1-9]
+        New-EventLog -Source $EventSources -LogName 'WDOT'
+        Limit-EventLog -OverflowAction OverWriteAsNeeded -MaximumSize 64KB -LogName 'WDOT'
+        Write-EventLog -LogName 'WDOT' -Source 'WDOT' -EntryType Information -EventId 1 -Message "Log Created"
+    }
+    Else 
+    {
+        New-EventLog -Source $EventSources -LogName 'WDOT' -ErrorAction SilentlyContinue
+    }
+    Write-EventLog -LogName 'WDOT' -Source 'WDOT' -EntryType Information -EventId 1 -Message "Starting WDOT by user '$env:USERNAME', for WDOT build '$WindowsVersion', with the following options:`n$($PSBoundParameters | Out-String)" 
+
+    $StartTime = Get-Date
+    $CurrentLocation = Get-Location
+    $WorkingLocation = (Join-Path $PSScriptRoot "Configurations\$WindowsVersion")
+
+    try
+    {
+        Push-Location $WorkingLocation -ErrorAction Stop
+    }
+    catch
+    {
+        $Message = "Invalid Path $WorkingLocation - Exiting Script!"
+        Write-EventLog -Message $Message -Source 'WDOT' -EventID 100 -EntryType Error -LogName 'WDOT'
+        Write-Warning $Message
+        Return
+    }
+}
