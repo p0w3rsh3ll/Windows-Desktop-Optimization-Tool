@@ -86,6 +86,7 @@ BEGIN
         . $_
     }
 
+    # Windows Desktop Optimization Tool Version
     [Version]$WDOTVersion = "1.0.0.0" 
     # Create Key
     $KeyPath = 'HKLM:\SOFTWARE\WDOT'
@@ -150,6 +151,7 @@ BEGIN
 } # End Begin
 
 PROCESS {
+    # Make sure we have something to process
     if (-not ($PSBoundParameters.Keys -match 'Optimizations') )
     {
         Write-EventLog -Message "No Optimizations (Optimizations or AdvancedOptimizations) passed, exiting script!" -Source 'WDOT' -EventID 100 -EntryType Error -LogName 'WDOT'
@@ -160,6 +162,8 @@ PROCESS {
         Write-Host $Message -ForegroundColor yellow -BackgroundColor black
         Return
     }
+
+    # Legal stuff
     $EULA = Get-Content (Join-Path $PSScriptRoot "EULA.txt")
     if (-not $AcceptEULA) {
         $Title = "Accept EULA"
@@ -182,14 +186,18 @@ PROCESS {
         Write-EventLog -LogName 'WDOT' -Source 'WDOT' -EntryType Information -EventId 1 -Message "EULA Accepted by Parameter"
     }
 
-    #region Disable, then remove, Windows Media Player including payload
+    #Get current OS stats
+    $OSVersion = Get-WDOTOperatingSystemInfo
+    New-WDOTCommentBox "$($OSVersion.Caption)`nVersion: $($OSVersion.DisplayVersion) - Release ID: $($OSVersion.ReleaseID)"
+
+    #region Windows Media Player
     If ($Optimizations -contains "WindowsMediaPlayer" -or $Optimizations -contains "All")
     {
         Remove-WDOTWindowsMediaPlayer
     }
     #endregion
 
-    #region Begin Clean APPX Packages
+    #region APPX Packages
     If ($Optimizations -contains "AppxPackages" -or $Optimizations -contains "All")
     {
         Remove-WDOTAppxPackages
@@ -204,8 +212,8 @@ PROCESS {
         Disable-WDOTScheduledTasks
     }
     #endregion
+    
     #region Customize Default User Profile
-
     # Apply appearance customizations to default user registry hive, then close hive file
     If ($Optimizations -contains "DefaultUserSettings" -or $Optimizations -contains "All")
     {
@@ -220,42 +228,10 @@ PROCESS {
     }
     #endregion
 
-
-
-    # [TODO - PICK UP BELOW THIS LINE]
-
     #region Disable Services
     If ($Optimizations -contains "Services" -or $Optimizations -contains "All")
     {
-        $ServicesFilePath = ".\ConfigurationFiles\Services.json"
-        If (Test-Path $ServicesFilePath)
-        {
-            Write-EventLog -EventId 60 -Message "Disable Services" -LogName 'WDOT' -Source 'Services' -EntryType Information
-            Write-Host "[VDI Optimize] Disable Services" -ForegroundColor Cyan
-            $ServicesToDisable = (Get-Content $ServicesFilePath | ConvertFrom-Json ).Where( { $_.VDIState -eq 'Disabled' })
-
-            If ($ServicesToDisable.count -gt 0)
-            {
-                Write-EventLog -EventId 60 -Message "Processing Services Configuration File" -LogName 'WDOT' -Source 'Services' -EntryType Information
-                Write-Verbose "Processing Services Configuration File"
-                Foreach ($Item in $ServicesToDisable)
-                {
-                    Write-EventLog -EventId 60 -Message "Attempting to disable Service $($Item.Name) - $($Item.Description)" -LogName 'WDOT' -Source 'Services' -EntryType Information
-                    Write-Verbose "Attempting to disable Service $($Item.Name) - $($Item.Description)"
-                    Set-Service $Item.Name -StartupType Disabled 
-                }
-            }  
-            Else
-            {
-                Write-EventLog -EventId 60 -Message "No Services found to disable" -LogName 'WDOT' -Source 'Services' -EntryType Warnnig
-                Write-Verbose "No Services found to disable"
-            }
-        }
-        Else
-        {
-            Write-EventLog -EventId 160 -Message "File not found: $ServicesFilePath" -LogName 'WDOT' -Source 'Services' -EntryType Error
-            Write-Warning "File not found: $ServicesFilePath"
-        }    
+        Disable-WDOTServices
     }
     #endregion
 
@@ -263,77 +239,7 @@ PROCESS {
     # LanManWorkstation optimizations
     If ($Optimizations -contains "NetworkOptimizations" -or $Optimizations -contains "All")
     {
-        $NetworkOptimizationsFilePath = ".\ConfigurationFiles\LanManWorkstation.json"
-        If (Test-Path $NetworkOptimizationsFilePath)
-        {
-            Write-EventLog -EventId 70 -Message "Configure LanManWorkstation Settings" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
-            Write-Host "[VDI Optimize] Configure LanManWorkstation Settings" -ForegroundColor Cyan
-            $LanManSettings = Get-Content $NetworkOptimizationsFilePath | ConvertFrom-Json
-            If ($LanManSettings.Count -gt 0)
-            {
-                Write-EventLog -EventId 70 -Message "Processing LanManWorkstation Settings ($($LanManSettings.Count) Hives)" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
-                Write-Verbose "Processing LanManWorkstation Settings ($($LanManSettings.Count) Hives)"
-                Foreach ($Hive in $LanManSettings)
-                {
-                    If (Test-Path -Path $Hive.HivePath)
-                    {
-                        Write-EventLog -EventId 70 -Message "Found $($Hive.HivePath)" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
-                        Write-Verbose "Found $($Hive.HivePath)"
-                        $Keys = $Hive.Keys.Where{ $_.SetProperty -eq $true }
-                        If ($Keys.Count -gt 0)
-                        {
-                            Write-EventLog -EventId 70 -Message "Create / Update LanManWorkstation Keys" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
-                            Write-Verbose "Create / Update LanManWorkstation Keys"
-                            Foreach ($Key in $Keys)
-                            {
-                                If (Get-ItemProperty -Path $Hive.HivePath -Name $Key.Name -ErrorAction SilentlyContinue)
-                                {
-                                    Write-EventLog -EventId 70 -Message "Setting $($Hive.HivePath) -Name $($Key.Name) -Value $($Key.PropertyValue)" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
-                                    Write-Verbose "Setting $($Hive.HivePath) -Name $($Key.Name) -Value $($Key.PropertyValue)"
-                                    Set-ItemProperty -Path $Hive.HivePath -Name $Key.Name -Value $Key.PropertyValue -Force
-                                }
-                                Else
-                                {
-                                    Write-EventLog -EventId 70 -Message "New $($Hive.HivePath) -Name $($Key.Name) -Value $($Key.PropertyValue)" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
-                                    Write-Host "New $($Hive.HivePath) -Name $($Key.Name) -Value $($Key.PropertyValue)"
-                                    New-ItemProperty -Path $Hive.HivePath -Name $Key.Name -PropertyType $Key.PropertyType -Value $Key.PropertyValue -Force | Out-Null
-                                }
-                            }
-                        }
-                        Else
-                        {
-                            Write-EventLog -EventId 70 -Message "No LanManWorkstation Keys to create / update" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Warning
-                            Write-Warning "No LanManWorkstation Keys to create / update"
-                        }  
-                    }
-                    Else
-                    {
-                        Write-EventLog -EventId 70 -Message "Registry Path not found $($Hive.HivePath)" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Warning
-                        Write-Warning "Registry Path not found $($Hive.HivePath)"
-                    }
-                }
-            }
-            Else
-            {
-                Write-EventLog -EventId 70 -Message "No LanManWorkstation Settings foun" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Warning
-                Write-Warning "No LanManWorkstation Settings found"
-            }
-        }
-        Else
-        {
-            Write-EventLog -EventId 70 -Message "File not found - $NetworkOptimizationsFilePath" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Warning
-            Write-Warning "File not found - $NetworkOptimizationsFilePath"
-        }
-
-        # NIC Advanced Properties performance settings for network biased environments
-        Write-EventLog -EventId 70 -Message "Configuring Network Adapter Buffer Size" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
-        Write-Host "[VDI Optimize] Configuring Network Adapter Buffer Size" -ForegroundColor Cyan
-        Set-NetAdapterAdvancedProperty -DisplayName "Send Buffer Size" -DisplayValue 4MB -NoRestart
-        <#  NOTE:
-            Note that the above setting is for a Microsoft Hyper-V VM.  You can adjust these values in your environment...
-            by querying in PowerShell using Get-NetAdapterAdvancedProperty, and then adjusting values using the...
-            Set-NetAdapterAdvancedProperty command.
-        #>
+        Optimize-WDOTNetworkOptimizations
     }
     #endregion
 
@@ -345,141 +251,29 @@ PROCESS {
     #   * set the "Select when Quality Updates are received" policy
     If ($Optimizations -contains "LocalPolicy" -or $Optimizations -contains "All")
     {
-        $LocalPolicyFilePath = ".\ConfigurationFiles\PolicyRegSettings.json"
-        If (Test-Path $LocalPolicyFilePath)
-        {
-            Write-EventLog -EventId 80 -Message "Local Policy Items" -LogName 'WDOT' -Source 'LocalPolicy' -EntryType Information
-            Write-Host "[VDI Optimize] Local Group Policy Items" -ForegroundColor Cyan
-            $PolicyRegSettings = Get-Content $LocalPolicyFilePath | ConvertFrom-Json
-            If ($PolicyRegSettings.Count -gt 0)
-            {
-                Write-EventLog -EventId 80 -Message "Processing PolicyRegSettings Settings ($($PolicyRegSettings.Count) Hives)" -LogName 'WDOT' -Source 'LocalPolicy' -EntryType Information
-                Write-Verbose "Processing PolicyRegSettings Settings ($($PolicyRegSettings.Count) Hives)"
-                Foreach ($Key in $PolicyRegSettings)
-                {
-                    If ($Key.VDIState -eq 'Enabled')
-                    {
-                        If (Get-ItemProperty -Path $Key.RegItemPath -Name $Key.RegItemValueName -ErrorAction SilentlyContinue) 
-                        { 
-                            Write-EventLog -EventId 80 -Message "Found key, $($Key.RegItemPath) Name $($Key.RegItemValueName) Value $($Key.RegItemValue)" -LogName 'WDOT' -Source 'LocalPolicy' -EntryType Information
-                            Write-Verbose "Found key, $($Key.RegItemPath) Name $($Key.RegItemValueName) Value $($Key.RegItemValue)"
-                            Set-ItemProperty -Path $Key.RegItemPath -Name $Key.RegItemValueName -Value $Key.RegItemValue -Force 
-                        }
-                        Else 
-                        { 
-                            If (Test-path $Key.RegItemPath)
-                            {
-                                Write-EventLog -EventId 80 -Message "Path found, creating new property -Path $($Key.RegItemPath) -Name $($Key.RegItemValueName) -PropertyType $($Key.RegItemValueType) -Value $($Key.RegItemValue)" -LogName 'WDOT' -Source 'LocalPolicy' -EntryType Information
-                                Write-Verbose "Path found, creating new property -Path $($Key.RegItemPath) Name $($Key.RegItemValueName) PropertyType $($Key.RegItemValueType) Value $($Key.RegItemValue)"
-                                New-ItemProperty -Path $Key.RegItemPath -Name $Key.RegItemValueName -PropertyType $Key.RegItemValueType -Value $Key.RegItemValue -Force | Out-Null 
-                            }
-                            Else
-                            {
-                                Write-EventLog -EventId 80 -Message "Error: Creating Name $($Key.RegItemValueName), Value $($Key.RegItemValue) and Path $($Key.RegItemPath)" -LogName 'WDOT' -Source 'LocalPolicy' -EntryType Information
-                                Write-Verbose "Error: Creating Name $($Key.RegItemValueName), Value $($Key.RegItemValue) and Path $($Key.RegItemPath)"
-                                New-Item -Path $Key.RegItemPath -Force | New-ItemProperty -Name $Key.RegItemValueName -PropertyType $Key.RegItemValueType -Value $Key.RegItemValue -Force | Out-Null
-                            }
-            
-                        }
-                    }
-                }
-            }
-            Else
-            {
-                Write-EventLog -EventId 80 -Message "No LocalPolicy Settings Found!" -LogName 'WDOT' -Source 'LocalPolicy' -EntryType Warning
-                Write-Warning "No LocalPolicy Settings found"
-            }
-        }
+        Optimize-WDOTLocalPolicySettings
     }
     #endregion
     
     #region Edge Settings
     If ($AdvancedOptimizations -contains "Edge" -or $AdvancedOptimizations -contains "All")
     {
-        $EdgeFilePath = ".\ConfigurationFiles\EdgeSettings.json"
-        If (Test-Path $EdgeFilePath)
-        {
-            Write-EventLog -EventId 80 -Message "Edge Policy Settings" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-            Write-Host "[VDI Advanced Optimize] Edge Policy Settings" -ForegroundColor Cyan
-            $EdgeSettings = Get-Content $EdgeFilePath | ConvertFrom-Json
-            If ($EdgeSettings.Count -gt 0)
-            {
-                Write-EventLog -EventId 80 -Message "Processing Edge Policy Settings ($($EdgeSettings.Count) Hives)" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-                Write-Verbose "Processing Edge Policy Settings ($($EdgeSettings.Count) Hives)"
-                Foreach ($Key in $EdgeSettings)
-                {
-                    If ($Key.VDIState -eq 'Enabled')
-                    {
-                        If ($key.RegItemValueName -eq 'DefaultAssociationsConfiguration')
-                        {
-                            Copy-Item .\ConfigurationFiles\DefaultAssociationsConfiguration.xml $key.RegItemValue -Force
-                        }
-                        If (Get-ItemProperty -Path $Key.RegItemPath -Name $Key.RegItemValueName -ErrorAction SilentlyContinue) 
-                        { 
-                            Write-EventLog -EventId 80 -Message "Found key, $($Key.RegItemPath) Name $($Key.RegItemValueName) Value $($Key.RegItemValue)" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-                            Write-Verbose "Found key, $($Key.RegItemPath) Name $($Key.RegItemValueName) Value $($Key.RegItemValue)"
-                            Set-ItemProperty -Path $Key.RegItemPath -Name $Key.RegItemValueName -Value $Key.RegItemValue -Force 
-                        }
-                        Else 
-                        { 
-                            If (Test-path $Key.RegItemPath)
-                            {
-                                Write-EventLog -EventId 80 -Message "Path found, creating new property -Path $($Key.RegItemPath) -Name $($Key.RegItemValueName) -PropertyType $($Key.RegItemValueType) -Value $($Key.RegItemValue)" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-                                Write-Verbose "Path found, creating new property -Path $($Key.RegItemPath) Name $($Key.RegItemValueName) PropertyType $($Key.RegItemValueType) Value $($Key.RegItemValue)"
-                                New-ItemProperty -Path $Key.RegItemPath -Name $Key.RegItemValueName -PropertyType $Key.RegItemValueType -Value $Key.RegItemValue -Force | Out-Null 
-                            }
-                            Else
-                            {
-                                Write-EventLog -EventId 80 -Message "Creating Key and Path" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-                                Write-Verbose "Creating Key and Path"
-                                New-Item -Path $Key.RegItemPath -Force | New-ItemProperty -Name $Key.RegItemValueName -PropertyType $Key.RegItemValueType -Value $Key.RegItemValue -Force | Out-Null 
-                            }
-            
-                        }
-                    }
-                }
-            }
-            Else
-            {
-                Write-EventLog -EventId 80 -Message "No Edge Policy Settings Found!" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Warning
-                Write-Warning "No Edge Policy Settings found"
-            }
-        }
-        Else 
-        {
-            # nothing to do here"
-        }    
+        Optimize-WDOTEdgeSettings
     }
     #endregion
 
     #region Remove Legacy Internet Explorer
     If ($AdvancedOptimizations -contains "RemoveLegacyIE" -or $AdvancedOptimizations -contains "All")
     {
-        Write-EventLog -EventId 80 -Message "Remove Legacy Internet Explorer" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-        Write-Host "[VDI Advanced Optimize] Remove Legacy Internet Explorer" -ForegroundColor Cyan
-        Get-WindowsCapability -Online | Where-Object Name -Like "*Browser.Internet*" | Remove-WindowsCapability -Online 
+        Remove-WDOTRemoveLegacyIE
     }
     #endregion
 
     #region Remove OneDrive Commercial
     If ($AdvancedOptimizations -contains "RemoveOneDrive" -or $AdvancedOptimizations -contains "All")
     {
-        Write-EventLog -EventId 80 -Message "Remove OneDrive Commercial" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-        Write-Host "[VDI Advanced Optimize] Removing OneDrive Commercial" -ForegroundColor Cyan
-        $OneDrivePath = @('C:\Windows\System32\OneDriveSetup.exe', 'C:\Windows\SysWOW64\OneDriveSetup.exe')   
-        $OneDrivePath | ForEach-Object {
-            If (Test-Path $_)
-            {
-                Write-Host "`tAttempting to uninstall $_"
-                Write-EventLog -EventId 80 -Message "Commercial $_" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-                Start-Process $_ -ArgumentList "/uninstall" -Wait
-            }
-        }
-
-        Write-EventLog -EventId 80 -Message "Removing shortcut links for OneDrive" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
-        Get-ChildItem 'C:\*' -Recurse -Force -EA SilentlyContinue -Include 'OneDrive', 'OneDrive.*' | Remove-Item -Force -Recurse -EA SilentlyContinue
+        Remove-WDOTRemoveOneDrive
     }
-
     #endregion
 
     #region Disk Cleanup
@@ -488,56 +282,16 @@ PROCESS {
     # 5/18/20: Removing Disk Cleanup and moving some of those tasks to the following manual cleanup
     If ($Optimizations -contains "DiskCleanup" -or $Optimizations -contains "All")
     {
-        try
-        {
-            Write-EventLog -EventId 90 -Message "Removing .tmp, .etl, .evtx, thumbcache*.db, *.log files not in use" -LogName 'WDOT' -Source 'DiskCleanup' -EntryType Information
-            Write-Verbose "Removing .tmp, .etl, .evtx, thumbcache*.db, *.log files not in use"
-            Get-ChildItem -Path c:\ -Include *.tmp, *.dmp, *.etl, *.evtx, thumbcache*.db, *.log -File -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -ErrorAction SilentlyContinue
-
-            # Delete "RetailDemo" content (if it exits)
-            Write-EventLog -EventId 90 -Message "Removing Retail Demo content (if it exists)" -LogName 'WDOT' -Source 'DiskCleanup' -EntryType Information
-            Write-Verbose "Removing Retail Demo content (if it exists)"
-            Get-ChildItem -Path $env:ProgramData\Microsoft\Windows\RetailDemo\* -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -ErrorAction SilentlyContinue
-
-            # Delete not in-use anything in the C:\Windows\Temp folder
-            Write-EventLog -EventId 90 -Message "Removing all files not in use in $env:windir\TEMP" -LogName 'WDOT' -Source 'DiskCleanup' -EntryType Information
-            Write-Verbose "Removing all files not in use in $env:windir\TEMP"
-            Remove-Item -Path $env:windir\Temp\* -Recurse -Force -ErrorAction SilentlyContinue -Exclude packer*.ps1
-
-            # Clear out Windows Error Reporting (WER) report archive folders
-            Write-EventLog -EventId 90 -Message "Cleaning up WER report archive" -LogName 'WDOT' -Source 'DiskCleanup' -EntryType Information
-            Write-Verbose "Cleaning up WER report archive"
-            Remove-Item -Path $env:ProgramData\Microsoft\Windows\WER\Temp\* -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path $env:ProgramData\Microsoft\Windows\WER\ReportArchive\* -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path $env:ProgramData\Microsoft\Windows\WER\ReportQueue\* -Recurse -Force -ErrorAction SilentlyContinue
-
-            # Delete not in-use anything in your %temp% folder
-            Write-EventLog -EventId 90 -Message "Removing files not in use in $env:temp directory" -LogName 'WDOT' -Source 'DiskCleanup' -EntryType Information
-            Write-Verbose "Removing files not in use in $env:temp directory"
-            Remove-Item -Path $env:TEMP\* -Recurse -Force -ErrorAction SilentlyContinue -Exclude packer*.ps1
-
-            # Clear out ALL visible Recycle Bins
-            Write-EventLog -EventId 90 -Message "Clearing out ALL Recycle Bins" -LogName 'WDOT' -Source 'DiskCleanup' -EntryType Information
-            Write-Verbose "Clearing out ALL Recycle Bins"
-            Clear-RecycleBin -Force -ErrorAction SilentlyContinue
-
-            # Clear out BranchCache cache
-            Write-EventLog -EventId 90 -Message "Clearing BranchCache cache" -LogName 'WDOT' -Source 'DiskCleanup' -EntryType Information
-            Write-Verbose "Clearing BranchCache cache"
-            Clear-BCCache -Force -ErrorAction SilentlyContinue
-        }
-        catch
-        {
-            Write-Verbose "DiskCleanup encountered a non-critical error: $($_.Exception.Message)"
-        }
+        Optimize-WDOTDiskCleanup
     }
     #endregion
 
+    # Windows Desktop Optimization Toolkit cleanup
     Set-Location $CurrentLocation
     $EndTime = Get-Date
     $ScriptRunTime = New-TimeSpan -Start $StartTime -End $EndTime
     Write-EventLog -LogName 'WDOT' -Source 'WDOT' -EntryType Information -EventId 1 -Message "WDOT Total Run Time: $($ScriptRunTime.Hours) Hours $($ScriptRunTime.Minutes) Minutes $($ScriptRunTime.Seconds) Seconds"
-    Write-Host "`n`nThank you from the Virtual Desktop Optimization Team" -ForegroundColor Cyan
+    Write-Host "`n`nThank you from the Windows Desktop Optimization Toolkit Team" -ForegroundColor Cyan
 
     If ($Restart) 
     {
