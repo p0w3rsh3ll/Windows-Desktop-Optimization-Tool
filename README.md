@@ -2,7 +2,8 @@
 
 >## Welcome to the next evolution of the Virtual Desktop Optimization Tool
 >
-![Static Badge](https://img.shields.io/badge/WDOT_Version-1.0-blue)
+![Static Badge](https://img.shields.io/badge/WDOT_Current_Version-1.0-blue)
+![Static Badge](https://img.shields.io/badge/WDOT_Latest_Release-1.0-Green)
 
 ![Contributors](https://img.shields.io/github/contributors/The-Virtual-Desktop-Team/Windows-Desktop-Optimization-Tool)
 ![Forks](https://img.shields.io/github/forks/The-Virtual-Desktop-Team/Windows-Desktop-Optimization-Tool)
