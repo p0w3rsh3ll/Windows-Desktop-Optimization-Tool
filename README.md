@@ -16,6 +16,12 @@
 
 The Windows Desktop Optimization Tool (WDOT).....
 
-## What's New
+##  What's New
+
+## 🛠️ Installation
+
+## 🎯 Quick Start
+
+## 📖 Usage Guide
 
 ....
