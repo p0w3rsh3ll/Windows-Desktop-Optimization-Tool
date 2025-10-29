@@ -26,7 +26,8 @@ Param (
 .DESCRIPTION
     This function allows interactive configuration of WVD optimization settings
     by reading a JSON configuration file and prompting the user to enable or
-    disable each optimization item.
+    disable each optimization item. Supports both flat array structures (like
+    Services.json, AppxPackages.json) and nested structures (like LanManWorkstation.json).
 
 .PARAMETER ConfigurationFile
     The name of the configuration file to modify (with or without .json extension).
@@ -54,7 +55,7 @@ Param (
     Apply all Services optimizations for the Test1 folder without prompting.
 
 .NOTES
-    Author: Tim Muessig
+    Author: Your Name
     Version: 2.0
     Requires: PowerShell 5.1 or higher
 #>
@@ -85,14 +86,14 @@ Function Set-WVDConfigurations
     {
         # Define configuration file property mappings
         $ConfigMappings = @{
-            'AppxPackages'        = @{ PropName = 'AppxPackage'; Description = 'Windows App Package' }
-            'AutoLoggers'         = @{ PropName = 'KeyName'; Description = 'Auto Logger' }
-            'DefaultUserSettings' = @{ PropName = 'KeyName'; Description = 'User Setting' }
-            'EdgeSettings'        = @{ PropName = 'RegItemValueName'; Description = 'Edge Setting' }
-            'LanManWorkstation'   = @{ PropName = 'Name'; Description = 'Network Setting' }
-            'PolicyRegSettings'   = @{ PropName = 'RegItemValueName'; Description = 'Policy Setting' }
-            'ScheduledTasks'      = @{ PropName = 'ScheduledTask'; Description = 'Scheduled Task' }
-            'Services'            = @{ PropName = 'Name'; Description = 'Windows Service' }
+            'AppxPackages'        = @{ PropName = 'AppxPackage'; Description = 'Windows App Package'; IsNested = $false }
+            'AutoLoggers'         = @{ PropName = 'KeyName'; Description = 'Auto Logger'; IsNested = $false }
+            'DefaultUserSettings' = @{ PropName = 'KeyName'; Description = 'User Setting'; IsNested = $false }
+            'EdgeSettings'        = @{ PropName = 'RegItemValueName'; Description = 'Edge Setting'; IsNested = $false }
+            'LanManWorkstation'   = @{ PropName = 'Name'; Description = 'Network Setting'; IsNested = $true; NestedProperty = 'Keys' }
+            'PolicyRegSettings'   = @{ PropName = 'RegItemValueName'; Description = 'Policy Setting'; IsNested = $false }
+            'ScheduledTasks'      = @{ PropName = 'ScheduledTask'; Description = 'Scheduled Task'; IsNested = $false }
+            'Services'            = @{ PropName = 'Name'; Description = 'Windows Service'; IsNested = $false }
         }
         
         # Validate conflicting parameters
@@ -113,8 +114,17 @@ Function Set-WVDConfigurations
                 $ConfigurationFile = "$ConfigFileBaseName.json"
             }
 
-            # Validate configuration file type
-            $ConfigMapping = $ConfigMappings[$ConfigFileBaseName]
+            # Validate configuration file type (case-insensitive lookup)
+            $ConfigMapping = $null
+            foreach ($Key in $ConfigMappings.Keys)
+            {
+                if ($Key -eq $ConfigFileBaseName -or $Key.ToLower() -eq $ConfigFileBaseName.ToLower())
+                {
+                    $ConfigMapping = $ConfigMappings[$Key]
+                    break
+                }
+            }
+            
             if (-not $ConfigMapping)
             {
                 $ValidFiles = $ConfigMappings.Keys -join ', '
@@ -158,14 +168,42 @@ Function Set-WVDConfigurations
 
             $PropName = $ConfigMapping.PropName
             $Description = $ConfigMapping.Description
+            $IsNested = $ConfigMapping.IsNested
+            $NestedProperty = $ConfigMapping.NestedProperty
             $ModifiedCount = 0
-            $TotalCount = $Content.Count
+
+            # Get the actual configuration items based on structure
+            if ($IsNested -and $NestedProperty)
+            {
+                # Handle nested structure (like LanManWorkstation)
+                $ConfigItems = @()
+                foreach ($Section in $Content)
+                {
+                    if ($Section.$NestedProperty)
+                    {
+                        $ConfigItems += $Section.$NestedProperty
+                    }
+                }
+            }
+            else
+            {
+                # Handle flat structure (like Services, AppxPackages, etc.)
+                $ConfigItems = $Content
+            }
+
+            $TotalCount = $ConfigItems.Count
 
             Write-Host "`nConfiguring $Description optimizations for '$ConfigFolderName'" -ForegroundColor Cyan
             Write-Host "Total items: $TotalCount" -ForegroundColor Yellow
 
+            if ($TotalCount -eq 0)
+            {
+                Write-Warning "No configuration items found in file: $TargetFile"
+                return $false
+            }
+
             # Process each configuration item
-            foreach ($Config in $Content)
+            foreach ($Config in $ConfigItems)
             {
                 $Name = if ($PropName) { $Config.$PropName } else { "Unknown" }
                 $CurrentState = $Config.OptimizationState
@@ -190,8 +228,27 @@ Function Set-WVDConfigurations
                 {
                     # Interactive mode
                     $ItemDescription = if ($Config.Description) { " - $($Config.Description)" } else { "" }
+                    
+                    # For nested items, show additional context
+                    $ContextInfo = ""
+                    if ($IsNested)
+                    {
+                        if ($Config.PropertyValue)
+                        {
+                            $ContextInfo = " (Value: $($Config.PropertyValue))"
+                        }
+                        if ($Config.PropertyType)
+                        {
+                            $ContextInfo += " [Type: $($Config.PropertyType)]"
+                        }
+                    }
+                    
                     Write-Host "`n$Description`: " -NoNewline -ForegroundColor White
                     Write-Host "$Name" -ForegroundColor Yellow
+                    if ($ContextInfo)
+                    {
+                        Write-Host "  Details:$ContextInfo" -ForegroundColor Cyan
+                    }
                     if ($ItemDescription)
                     {
                         Write-Host "  Description:$ItemDescription" -ForegroundColor Gray
