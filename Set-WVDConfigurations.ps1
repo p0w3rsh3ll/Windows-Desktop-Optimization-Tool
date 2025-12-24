@@ -3,18 +3,18 @@ Param (
     [Parameter(Mandatory = $true, HelpMessage = "Specify the configuration file name (with or without .json extension)")]
     [ValidateNotNullOrEmpty()]
     [string]$ConfigurationFile,
-    
+
     [Parameter(Mandatory = $true, HelpMessage = "Specify the configuration folder name")]
     [ValidateNotNullOrEmpty()]
     [ValidatePattern("^[a-zA-Z0-9_-]+$")]
     [string]$ConfigFolderName,
-    
+
     [Parameter(HelpMessage = "Apply all optimizations without prompting")]
     [switch]$ApplyAll,
-    
+
     [Parameter(HelpMessage = "Skip all optimizations without prompting")]
     [switch]$SkipAll,
-    
+
     [Parameter(HelpMessage = "Create backup of original file before modifications")]
     [switch]$CreateBackup
 )
@@ -66,18 +66,18 @@ Function Set-WVDConfigurations
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$ConfigurationFile,
-        
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern("^[a-zA-Z0-9_-]+$")]
         [string]$ConfigFolderName,
-        
+
         [Parameter()]
         [switch]$ApplyAll,
-        
+
         [Parameter()]
         [switch]$SkipAll,
-        
+
         [Parameter()]
         [switch]$CreateBackup
     )
@@ -95,7 +95,7 @@ Function Set-WVDConfigurations
             'ScheduledTasks'      = @{ PropName = 'ScheduledTask'; Description = 'Scheduled Task'; IsNested = $false }
             'Services'            = @{ PropName = 'Name'; Description = 'Windows Service'; IsNested = $false }
         }
-        
+
         # Validate conflicting parameters
         if ($ApplyAll -and $SkipAll)
         {
@@ -124,7 +124,7 @@ Function Set-WVDConfigurations
                     break
                 }
             }
-            
+
             if (-not $ConfigMapping)
             {
                 $ValidFiles = $ConfigMappings.Keys -join ', '
@@ -159,7 +159,7 @@ Function Set-WVDConfigurations
             # Read and parse configuration file
             Write-Verbose "Reading configuration file: $TargetFile"
             $Content = Get-Content -Path $TargetFile -Raw | ConvertFrom-Json
-            
+
             if (-not $Content -or $Content.Count -eq 0)
             {
                 Write-Warning "Configuration file is empty or invalid: $TargetFile"
@@ -207,7 +207,7 @@ Function Set-WVDConfigurations
             {
                 $Name = if ($PropName) { $Config.$PropName } else { "Unknown" }
                 $CurrentState = $Config.OptimizationState
-                
+
                 if (-not $Name)
                 {
                     Write-Warning "Skipping item with missing name property '$PropName'"
@@ -215,7 +215,7 @@ Function Set-WVDConfigurations
                 }
 
                 $NewState = $CurrentState
-                
+
                 if ($ApplyAll)
                 {
                     $NewState = 'Apply'
@@ -228,7 +228,7 @@ Function Set-WVDConfigurations
                 {
                     # Interactive mode
                     $ItemDescription = if ($Config.Description) { " - $($Config.Description)" } else { "" }
-                    
+
                     # For nested items, show additional context
                     $ContextInfo = ""
                     if ($IsNested)
@@ -242,7 +242,7 @@ Function Set-WVDConfigurations
                             $ContextInfo += " [Type: $($Config.PropertyType)]"
                         }
                     }
-                    
+
                     Write-Host "`n$Description`: " -NoNewline -ForegroundColor White
                     Write-Host "$Name" -ForegroundColor Yellow
                     if ($ContextInfo)
@@ -266,7 +266,7 @@ Function Set-WVDConfigurations
                             'S' { $NewState = 'Skip'; break }
                             'K' { $NewState = $CurrentState; break }
                             'Q'
-                            { 
+                            {
                                 Write-Host "Configuration cancelled by user." -ForegroundColor Yellow
                                 return $false
                             }
@@ -333,13 +333,13 @@ if (-not $PSBoundParameters.ContainsKey('WhatIf') -and -not $PSBoundParameters.C
         ConfigurationFile = $ConfigurationFile
         ConfigFolderName  = $ConfigFolderName
     }
-    
+
     if ($ApplyAll) { $params.ApplyAll = $true }
     if ($SkipAll) { $params.SkipAll = $true }
     if ($CreateBackup) { $params.CreateBackup = $true }
-    
+
     $result = Set-WVDConfigurations @params
-    
+
     if ($result)
     {
         Write-Host "`nConfiguration completed successfully!" -ForegroundColor Green
@@ -349,4 +349,4 @@ if (-not $PSBoundParameters.ContainsKey('WhatIf') -and -not $PSBoundParameters.C
         Write-Host "`nConfiguration failed or was cancelled." -ForegroundColor Red
         exit 1
     }
-} 
+}
