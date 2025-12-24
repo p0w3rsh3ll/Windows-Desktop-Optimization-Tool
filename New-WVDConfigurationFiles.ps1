@@ -31,6 +31,7 @@ Param (
 #>
 Function New-WVDConfigurationFiles {
     [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [ValidateNotNullOrEmpty()]
