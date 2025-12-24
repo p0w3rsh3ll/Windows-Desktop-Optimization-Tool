@@ -1,6 +1,6 @@
 ﻿Function Remove-WDOTAppxPackages
 {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     Param
     (
 
@@ -27,15 +27,43 @@
                     {
                         Write-EventLog -EventId 20 -Message "Removing Provisioned Package $($Item.AppxPackage)" -LogName 'WDOT' -Source 'AppxPackages' -EntryType Information
                         Write-Verbose "Removing Provisioned Package $($Item.AppxPackage)"
-                        Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like ("*{0}*" -f $Item.AppxPackage) } | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
-
+                        Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like ("*{0}*" -f $Item.AppxPackage) } |
+                        Foreach-Object {
+                         $p = $_
+                         if ($PSCmdlet.ShouldProcess($p.DisplayName,'Remove Provisioned Package')) {
+                          try {
+                           $null = Remove-AppxProvisionedPackage -PackageName $p.PackageName -Online -ErrorAction Stop
+                          } catch {
+                           Write-Warning -Message "Failed to remove provisioned package $($p.DisplayName) because $($_.Exception.Message)"
+                          }
+                         }
+                        }
                         Write-EventLog -EventId 20 -Message "Attempting to remove [All Users] $($Item.AppxPackage) - $($Item.Description)" -LogName 'WDOT' -Source 'AppxPackages' -EntryType Information
                         Write-Verbose "Attempting to remove [All Users] $($Item.AppxPackage) - $($Item.Description)"
-                        Get-AppxPackage -AllUsers -Name ("*{0}*" -f $Item.AppxPackage) | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
-
+                        Get-AppxPackage -AllUsers -Name ("*{0}*" -f $Item.AppxPackage) |
+                        Foreach-Object {
+                         $p = $_
+                         if ($PSCmdlet.ShouldProcess($p.Name,'Remove AllUsers package')) {
+                          try {
+                           $null = $p | Remove-AppxPackage -AllUsers -ErrorAction Stop
+                          } catch {
+                           Write-Warning -Message "Failed to remove AllUsers package $($p.Name) because $($_.Exception.Message)"
+                          }
+                         }
+                        }
                         Write-EventLog -EventId 20 -Message "Attempting to remove $($Item.AppxPackage) - $($Item.Description)" -LogName 'WDOT' -Source 'AppxPackages' -EntryType Information
                         Write-Verbose "Attempting to remove $($Item.AppxPackage) - $($Item.Description)"
-                        Get-AppxPackage -Name ("*{0}*" -f $Item.AppxPackage) | Remove-AppxPackage -ErrorAction SilentlyContinue | Out-Null
+                        Get-AppxPackage -Name ("*{0}*" -f $Item.AppxPackage) |
+                        Foreach-Object {
+                         $p = $_
+                         if ($PSCmdlet.ShouldProcess($p.Name,'Remove CurrentUser package')) {
+                          try {
+                           $null = $p | Remove-AppxPackage -ErrorAction Stop
+                          } catch {
+                           Write-Warning -Message "Failed to remove CurrentUser package $($p.Name) because $($_.Exception.Message)"
+                          }
+                         }
+                        }
                     }
                     catch
                     {
