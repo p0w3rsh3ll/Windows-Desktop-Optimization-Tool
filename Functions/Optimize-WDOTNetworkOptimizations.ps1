@@ -1,4 +1,4 @@
-function Optimize-WDOTNetworkOptimizations
+﻿function Optimize-WDOTNetworkOptimizations
 {
     [CmdletBinding()]
 
@@ -54,7 +54,7 @@ function Optimize-WDOTNetworkOptimizations
                         {
                             Write-EventLog -EventId 70 -Message "No LanManWorkstation Keys to create / update" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Warning
                             Write-Warning "No LanManWorkstation Keys to create / update"
-                        }  
+                        }
                     }
                     Else
                     {
