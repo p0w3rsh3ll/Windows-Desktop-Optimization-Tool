@@ -1,4 +1,4 @@
-function New-WDOTCommentBox ()
+﻿function New-WDOTCommentBox ()
 {
     param([string]$titleText)
     $lines = $titleText.Split("`n")
@@ -12,7 +12,7 @@ function New-WDOTCommentBox ()
             $line = $line.Substring(0, 66)
         }
         $line = $line.Trim()
-        $lspaces = ([math]::Floor((68 - $line.trim().Length) / 2))      
+        $lspaces = ([math]::Floor((68 - $line.trim().Length) / 2))
         $rspaces = (68 - $lspaces - $line.Length)
         $output += "#$(" "*$lspaces)$($line.trim())$(" "*$rspaces)#`n"
 
