@@ -28,9 +28,9 @@
                 {
                     Write-EventLog -EventId 60 -Message "Attempting to disable Service $($Item.Name) - $($Item.Description)" -LogName 'WDOT' -Source 'Services' -EntryType Information
                     Write-Verbose "Attempting to disable Service $($Item.Name) - $($Item.Description)"
-                    Set-Service $Item.Name -StartupType Disabled 
+                    Set-Service $Item.Name -StartupType Disabled
                 }
-            }  
+            }
             Else
             {
                 Write-EventLog -EventId 60 -Message "No Services found to disable" -LogName 'WDOT' -Source 'Services' -EntryType Warning
@@ -41,7 +41,7 @@
         {
             Write-EventLog -EventId 160 -Message "File not found: $ServicesFilePath" -LogName 'WDOT' -Source 'Services' -EntryType Error
             Write-Warning "File not found: $ServicesFilePath"
-        }    
+        }
 
     }
     End
