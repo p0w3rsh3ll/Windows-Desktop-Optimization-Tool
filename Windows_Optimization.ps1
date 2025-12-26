@@ -124,18 +124,41 @@ BEGIN
         New-ItemProperty -Path $KeyPath -Name $LastRun -Value $LastRunValue | Out-Null
     }
     
-    $EventSources = @('WDOT', 'WindowsMediaPlayer', 'AppxPackages', 'ScheduledTasks', 'DefaultUserSettings', 'Autologgers', 'Services', 'LocalPolicy', 'NetworkOptimizations', 'AdvancedOptimizations', 'DiskCleanup')
-    If (-not([System.Diagnostics.EventLog]::SourceExists("WDOT")))
+    $EventSources = @('WindowsMediaPlayer', 'AppxPackages', 'ScheduledTasks', 'DefaultUserSettings', 'Autologgers', 'Services', 'LocalPolicy', 'NetworkOptimizations', 'AdvancedOptimizations', 'DiskCleanup')
+
+    if (Get-WinEvent -ListProvider $EventSources -ErrorAction SilentlyContinue) {
+     $EventSources|
+     Foreach-Object {
+      $s = $_
+      if ((Get-WinEvent -ListProvider $s -ErrorAction SilentlyContinue).LogLinks.LogName -ne 'WDOT') {
+       try {
+        Remove-EventLog -Source $s -ErrorAction Stop
+       } catch {
+        Write-Warning -Message "Failed to remove source $($s) because $($_.Exception.Message)"    
+       }
+      }
+     }
+    }
+    If (-not([System.Diagnostics.EventLog]::Exists('WDOT')))
     {
         # All WDOT main function Event ID's [1-9]
-        New-EventLog -Source $EventSources -LogName 'WDOT'
+        New-EventLog -Source (@('WDOT')+$EventSources) -LogName 'WDOT'
         Limit-EventLog -OverflowAction OverWriteAsNeeded -MaximumSize 64KB -LogName 'WDOT'
         Write-EventLog -LogName 'WDOT' -Source 'WDOT' -EntryType Information -EventId 1 -Message "Log Created"
+    } else {
+        $EventSources|
+        Foreach-Object {
+         $s = $_
+         if ((Get-WinEvent -ListProvider $s -ErrorAction SilentlyContinue).LogLinks.LogName -ne 'WDOT') {
+          try {
+           [System.Diagnostics.EventLog]::CreateEventSource($s,'WDOT')
+          } catch {
+           Write-Warning -Message "Failed to add source $($s) because $($_.Exception.Message)"    
+          }
+         }
+        }
     }
-    Else 
-    {
-        New-EventLog -Source $EventSources -LogName 'WDOT' -ErrorAction SilentlyContinue
-    }
+
     
     # Handle parameter set and validate configuration path
     if ($PSCmdlet.ParameterSetName -eq 'ByWindowsVersion')
