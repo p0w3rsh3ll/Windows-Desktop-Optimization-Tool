@@ -15,7 +15,6 @@ Function Disable-WDOTScheduledTask {
     }
     Process
     {
-        $ScheduledTasksFilePath = ".\ScheduledTasks.json"
         If (Test-Path -Path $ScheduledTasksFilePath -PathType Leaf)
         {
             Write-EventLog -EventId 30 -Message "[Windows Optimize] Disable Scheduled Tasks" @EVT -EntryType Information @sHT
