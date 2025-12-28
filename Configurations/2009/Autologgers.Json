@@ -39,6 +39,6 @@
     "KeyName": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\Mellanox-Kernel\\",
     "URL": "N/A",
     "OptimizationState": "Apply",
-    "Description": "Diagnostic log for ReFS. Unless using ReFS, this trace log should not be needed"
+    "Description": "Diagnostic log for Mellanox kernel driver. Unless using Mellanox network adapters, this trace log should not be needed"
   }
 ]
