@@ -1,4 +1,4 @@
-function Remove-WDOTRemoveOneDrive
+﻿function Remove-WDOTRemoveOneDrive
 {
     [CmdletBinding()]
 
@@ -15,7 +15,7 @@ function Remove-WDOTRemoveOneDrive
     {
         Write-EventLog -EventId 80 -Message "Remove OneDrive Commercial" -LogName 'WDOT' -Source 'AdvancedOptimizations' -EntryType Information
         Write-Host "Windows Advanced Optimize] Removing OneDrive Commercial" -ForegroundColor Cyan
-        $OneDrivePath = @('C:\Windows\System32\OneDriveSetup.exe', 'C:\Windows\SysWOW64\OneDriveSetup.exe')   
+        $OneDrivePath = @('C:\Windows\System32\OneDriveSetup.exe', 'C:\Windows\SysWOW64\OneDriveSetup.exe')
         $OneDrivePath | ForEach-Object {
             If (Test-Path $_)
             {

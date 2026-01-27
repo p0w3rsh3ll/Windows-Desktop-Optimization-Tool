@@ -3,12 +3,12 @@
     [CmdletBinding()]
     param ()
 
-    Begin 
+    Begin
     {
          Write-Verbose "Entering Function '$($MyInvocation.MyCommand.Name)'"
     }
-        
-    Process 
+
+    Process
     {
         $CIMOSInfo = Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version
         $RegOSInfo = Get-ItemProperty -path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' | Select-Object CurrentVersion, CurrentBuildNumber, DisplayVersion, ReleaseID
@@ -22,7 +22,7 @@
         }
     }
 
-    End 
+    End
     {
         Write-Verbose "Exiting Function '$($MyInvocation.MyCommand.Name)'"
         Return $OSInfo

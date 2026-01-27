@@ -24,7 +24,7 @@
                 Write-EventLog -EventId 40 -Message "Processing Default User Settings (Registry Keys)" -LogName 'WDOT' -Source 'DefaultUserSettings' -EntryType Information
                 Write-Verbose "Processing Default User Settings (Registry Keys)"
                 $null = Start-Process reg -ArgumentList "LOAD HKLM\WDOT_TEMP C:\Users\Default\NTUSER.DAT" -PassThru -Wait
-                
+
                 Foreach ($Item in $UserSettings)
                 {
                     If ($Item.PropertyType -eq "BINARY")
@@ -38,12 +38,12 @@
 
                     If (Test-Path -Path ("{0}" -f $Item.HivePath))
                     {
-                        Write-EventLog -EventId 40 -Message "Found $($Item.HivePath) - $($Item.KeyName)" -LogName 'WDOT' -Source 'DefaultUserSettings' -EntryType Information        
+                        Write-EventLog -EventId 40 -Message "Found $($Item.HivePath) - $($Item.KeyName)" -LogName 'WDOT' -Source 'DefaultUserSettings' -EntryType Information
                         Write-Verbose "Found $($Item.HivePath) - $($Item.KeyName)"
                         If (Get-ItemProperty -Path ("{0}" -f $Item.HivePath) -ErrorAction SilentlyContinue)
                         {
                             Write-EventLog -EventId 40 -Message "Set $($Item.HivePath) - $Value" -LogName 'WDOT' -Source 'DefaultUserSettings' -EntryType Information
-                            Set-ItemProperty -Path ("{0}" -f $Item.HivePath) -Name $Item.KeyName -Value $Value -Type $Item.PropertyType -Force 
+                            Set-ItemProperty -Path ("{0}" -f $Item.HivePath) -Name $Item.KeyName -Value $Value -Type $Item.PropertyType -Force
                         }
                         Else
                         {
@@ -63,7 +63,7 @@
                         Else
                         {
                             Write-EventLog -EventId 140 -Message "Failed to create new Registry Key" -LogName 'WDOT' -Source 'DefaultUserSettings' -EntryType Error
-                        } 
+                        }
                     }
                 }
                 $null = Start-Process reg -ArgumentList "UNLOAD HKLM\WDOT_TEMP" -PassThru -Wait
@@ -76,7 +76,7 @@
         Else
         {
             Write-EventLog -EventId 40 -Message "File not found: $DefaultUserSettingsFilePath" -LogName 'WDOT' -Source 'DefaultUserSettings' -EntryType Warning
-        }    
+        }
     }
     End
     {
