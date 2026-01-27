@@ -75,15 +75,18 @@ function Optimize-WDOTNetworkOptimizations
             Write-Warning "File not found - $NetworkOptimizationsFilePath"
         }
 
-        # NIC Advanced Properties performance settings for network biased environments
-        Write-EventLog -EventId 70 -Message "Configuring Network Adapter Buffer Size" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
-        Write-Host "[Windows Optimize] Configuring Network Adapter Buffer Size" -ForegroundColor Cyan
-        Set-NetAdapterAdvancedProperty -DisplayName "Send Buffer Size" -DisplayValue 4MB -NoRestart
-        <#  NOTE:
+        if (Get-NetAdapterAdvancedProperty | Where-Object { $_.DisplayName -eq 'Send Buffer Size' }) {
+         # NIC Advanced Properties performance settings for network biased environments
+         Write-EventLog -EventId 70 -Message "Configuring Network Adapter Buffer Size" -LogName 'WDOT' -Source 'NetworkOptimizations' -EntryType Information
+         Write-Host "[Windows Optimize] Configuring Network Adapter Buffer Size" -ForegroundColor Cyan
+
+         Set-NetAdapterAdvancedProperty -DisplayName "Send Buffer Size" -DisplayValue 4MB -NoRestart
+         <#  NOTE:
             Note that the above setting is for a Microsoft Hyper-V VM.  You can adjust these values in your environment...
             by querying in PowerShell using Get-NetAdapterAdvancedProperty, and then adjusting values using the...
             Set-NetAdapterAdvancedProperty command.
-        #>
+         #>
+        }
 
     }
     End
