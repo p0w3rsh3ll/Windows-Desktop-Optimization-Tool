@@ -352,8 +352,9 @@ Get-ExecutionPolicy
 Get-ChildItem .\Configurations -Directory
 
 # Test configuration file validity
-Test-Json -Path ".\Configurations\MyConfig\Services.json"
-
+if ($PSVersionTable.PSVersion -gt [version]'6.0.0') {
+ Test-Json -Path ".\Configurations\MyConfig\Services.json"
+}
 # Check WDOT version and last run
 Get-ItemProperty "HKLM:\SOFTWARE\WDOT"
 ```
