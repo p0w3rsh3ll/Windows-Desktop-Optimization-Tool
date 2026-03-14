@@ -92,19 +92,20 @@ Function Optimize-WDOTNetworkOptimization
         }
 
         # NIC Advanced Properties performance settings for network biased environments
-        Write-EventLog -Message "Configuring Network Adapter Buffer Size" @EVT @eId70Info @sHT
-        Write-Host -Object "[Windows Optimize] Configuring Network Adapter Buffer Size" -ForegroundColor Cyan
-        try {
-         Set-NetAdapterAdvancedProperty -DisplayName "Send Buffer Size" -DisplayValue 4MB -NoRestart @HT
-        } catch {
-         Write-Waring -Message "Failed to set Send Buffer Size because $($_.Exception.Message)"
-        }
-        <#  NOTE:
+        if (Get-NetAdapterAdvancedProperty | Where-Object { $_.DisplayName -eq 'Send Buffer Size' }) {
+         Write-EventLog -Message "Configuring Network Adapter Buffer Size" @EVT @eId70Info @sHT
+         Write-Host -Object "[Windows Optimize] Configuring Network Adapter Buffer Size" -ForegroundColor Cyan
+         try {
+          Set-NetAdapterAdvancedProperty -DisplayName "Send Buffer Size" -DisplayValue 4MB -NoRestart @HT
+         } catch {
+          Write-Waring -Message "Failed to set Send Buffer Size because $($_.Exception.Message)"
+         }
+         <#  NOTE:
             Note that the above setting is for a Microsoft Hyper-V VM.  You can adjust these values in your environment...
             by querying in PowerShell using Get-NetAdapterAdvancedProperty, and then adjusting values using the...
             Set-NetAdapterAdvancedProperty command.
-        #>
-
+         #>
+        }
     }
     End
     {
