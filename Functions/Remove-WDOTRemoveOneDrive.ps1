@@ -13,7 +13,7 @@ Function Remove-WDOTRemoveOneDrive
         Write-Verbose -Message "Entering Function '$($MyInvocation.MyCommand.Name)'"
         $HT = @{ ErrorAction = 'Stop' }
         $sHT = @{ ErrorAction = 'SilentlyContinue' }
-        EVT = @{ LogName = 'WDOT' ; Source = 'AdvancedOptimizations' }
+        $EVT = @{ LogName = 'WDOT' ; Source = 'AdvancedOptimizations' }
     }
     Process
     {
