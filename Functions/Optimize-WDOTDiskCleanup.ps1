@@ -6,7 +6,7 @@ Function Optimize-WDOTDiskCleanup {
     {
         Write-Verbose -Message "Entering Function '$($MyInvocation.MyCommand.Name)'"
         $sHT = @{ ErrorAction = 'SilentlyContinue' }
-        EVT = @{ LogName = 'WDOT' ; Source = 'DiskCleanup' }
+        $EVT = @{ LogName = 'WDOT' ; Source = 'DiskCleanup' }
     }
     Process
     {
