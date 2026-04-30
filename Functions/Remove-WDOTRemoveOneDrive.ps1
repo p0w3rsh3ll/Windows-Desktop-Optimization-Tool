@@ -36,8 +36,12 @@ Function Remove-WDOTRemoveOneDrive
         }
 
         Write-EventLog -EventId 80 -Message "Removing shortcut links for OneDrive" @EVT -EntryType Information @sHT
-        Get-ChildItem -Path 'C:\*' -Recurse -Force @sHT -Include 'OneDrive', 'OneDrive.exe', 'OneDrive.ico' |
-        Where-Object { $_.FullName -notlike '*\WinSxS\*' } |
+        Get-ChildItem -Path (
+         "$($env:systemroot)\SysWOW64",
+         "$($env:systemroot)\System32",
+         "$($env:Systemdrive)\Users\*\AppData\Local\Microsoft\OneDrive",
+         "$($env:systemroot)\ServiceProfiles\*\AppData\Roaming\Microsoft\Windows\Start Menu\Programs"
+         ) -Recurse -Force @sHT -Include 'OneDrive', 'OneDrive.lnk', 'OneDrive.exe', 'OneDrive.ico'|
         Foreach-Object {
          $f = $_
          if ($PSCmdlet.ShouldProcess("$($f.FullName)",'Delete item')) {
