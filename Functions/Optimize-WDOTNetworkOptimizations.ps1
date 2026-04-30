@@ -12,9 +12,9 @@ Function Optimize-WDOTNetworkOptimization
         Write-Verbose -Message "Entering Function '$($MyInvocation.MyCommand.Name)'"
         $HT = @{ ErrorAction = 'Stop' }
         $sHT = @{ ErrorAction = 'SilentlyContinue' }
-        $EVT = @{ LogName = 'WDOT' ; Source = 'DefaultUserSettings' }
-        $eId70Info  = @{ EventId = 40 ; EntryType = 'Information' }
-        $eId70Warn  = @{ EventId = 40 ; EntryType = 'Warning' }
+        $EVT = @{ LogName = 'WDOT' ; Source = 'NetworkOptimizations' }
+        $eId70Info  = @{ EventId = 70 ; EntryType = 'Information' }
+        $eId70Warn  = @{ EventId = 70 ; EntryType = 'Warning' }
     }
     Process
     {
