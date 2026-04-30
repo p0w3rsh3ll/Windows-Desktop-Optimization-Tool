@@ -98,7 +98,7 @@ Function Optimize-WDOTNetworkOptimization
          try {
           Set-NetAdapterAdvancedProperty -DisplayName "Send Buffer Size" -DisplayValue 4MB -NoRestart @HT
          } catch {
-          Write-Waring -Message "Failed to set Send Buffer Size because $($_.Exception.Message)"
+          Write-Warning -Message "Failed to set Send Buffer Size because $($_.Exception.Message)"
          }
          <#  NOTE:
             Note that the above setting is for a Microsoft Hyper-V VM.  You can adjust these values in your environment...
