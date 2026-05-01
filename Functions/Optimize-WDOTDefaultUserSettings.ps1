@@ -27,8 +27,8 @@ Function Optimize-WDOTDefaultUserSetting {
             {
                 Write-EventLog -Message "Processing Default User Settings (Registry Keys)" @EVT @eId40Info @sHT
                 Write-Verbose -Message "Processing Default User Settings (Registry Keys)"
-                $null = Start-Process -FilePath "$($env:systemroot)\system32\reg.exe" -ArgumentList "LOAD HKLM\WDOT_TEMP C:\Users\Default\NTUSER.DAT" -PassThru -Wait
-                if ($LASTEXITCODE -eq  0) {
+                $pr = Start-Process -FilePath "$($env:systemroot)\system32\reg.exe" -ArgumentList "LOAD HKLM\WDOT_TEMP C:\Users\Default\NTUSER.DAT" -PassThru -Wait
+                if ($pr.ExitCode -eq  0) {
                  Foreach ($Item in $UserSettings)
                  {
                     If ($Item.PropertyType -eq 'BINARY')
