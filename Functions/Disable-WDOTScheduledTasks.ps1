@@ -41,11 +41,11 @@ Function Disable-WDOTScheduledTask {
                     }
                     ElseIf ($TaskObject -and $TaskObject.State -eq 'Disabled')
                     {
-                        Write-EventLog -EventId 30 -Message "$($TaskObject.TaskName) Scheduled Task is already disabled - $($_.Exception.Message)" @EVT -EntryType Warning @sHT
+                        Write-EventLog -EventId 30 -Message "$($TaskObject.TaskName) Scheduled Task is already disabled" @EVT -EntryType Warning @sHT
                     }
                     Else
                     {
-                        Write-EventLog -EventId 130 -Message "Unable to find Scheduled Task: $($TaskObject.TaskName) - $($_.Exception.Message)" @EVT -EntryType Error @sHT
+                        Write-EventLog -EventId 130 -Message "Unable to find Scheduled Task: $($TaskObject.TaskName)" @EVT -EntryType Error @sHT
                     }
                 }
             }
@@ -56,7 +56,7 @@ Function Disable-WDOTScheduledTask {
         }
         Else
         {
-            Write-EventLog -EventId 30 -Message "File not found! -  $ScheduledTasksFilePath" @EVT -EntryType Warning @sHT
+            Write-EventLog -EventId 30 -Message "File not found! - $ScheduledTasksFilePath" @EVT -EntryType Warning @sHT
         }
     }
     End
