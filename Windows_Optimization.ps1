@@ -214,7 +214,7 @@ To create this configuration profile, use:
 "@
 
         Write-Host -Object $Message -ForegroundColor Red
-        Write-EventLog -Message "Invalid configuration path: $WorkingLocation"  -EventID 100 -EntryType Error @EVT @sHT
+        Write-EventLog -Message "Invalid configuration path: $WorkingLocation" -EventID 100 -EntryType Error @EVT @sHT
         return
     }
 
@@ -237,7 +237,7 @@ Process {
     # Make sure we have something to process
     if (-not ($PSBoundParameters.Keys -match 'Optimizations') )
     {
-        Write-EventLog -Message "No Optimizations (Optimizations or AdvancedOptimizations) passed, exiting script!"  -EventID 100 -EntryType Error @EVT @sHT
+        Write-EventLog -Message 'No Optimizations (Optimizations or AdvancedOptimizations) passed, exiting script!' -EventID 100 -EntryType Error @EVT @sHT
         $Message = "`nThe Optimizations parameter no longer defaults to 'All', you must explicitly pass in this parameter.`nThis is to allow for running 'AdvancedOptimizations' separately "
         Write-Host -Object ' * ' -ForegroundColor black -BackgroundColor yellow -NoNewline
         Write-Host -Object ' Important ' -ForegroundColor Yellow -BackgroundColor Red -NoNewline
