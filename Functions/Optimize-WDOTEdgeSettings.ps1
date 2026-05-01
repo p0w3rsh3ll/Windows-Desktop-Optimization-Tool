@@ -61,7 +61,7 @@ try {
                                 try {
                                  $null = New-ItemProperty -Path $Key.RegItemPath -Name $Key.RegItemValueName -PropertyType $Key.RegItemValueType -Value $Key.RegItemValue -Force @HT
                                 } catch {
-                                 Write-Warning -Message "Faile to create $($Key.RegItemValueName) under $($Key.RegItemPath) because $($_.Exception.Message)"
+                                 Write-Warning -Message "Failed to create $($Key.RegItemValueName) under $($Key.RegItemPath) because $($_.Exception.Message)"
                                 }
                             }
                             Else
