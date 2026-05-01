@@ -320,6 +320,7 @@ Function Set-WVDConfiguration
                      Write-Host -Object "Modified $ModifiedCount out of $TotalCount items." -ForegroundColor Yellow
                     } catch {
                      Write-Warning -Message "Failed to modify $($TargetFile) because $($_.Exception.Message)"
+                     return $false
                     }
                 }
                 else
